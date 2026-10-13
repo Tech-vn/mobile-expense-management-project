@@ -1,0 +1,16 @@
+# Gradle / build
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE: cả IntelliJ lẫn Android Studio đều không commit
+.idea/
+*.iml
+
+# Local
+local.properties
+*.apk
+*.aab
+*.log
