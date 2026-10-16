@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 *.iml
 .gradle
 /local.properties
@@ -13,3 +14,22 @@
 .externalNativeBuild
 .cxx
 local.properties
+=======
+# Gradle / build
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+.kotlin/
+
+# IDE: cả IntelliJ lẫn Android Studio đều không commit
+.idea/
+*.iml
+
+# Local
+local.properties
+*.apk
+*.aab
+*.log
+>>>>>>> 6b8bed52bdcab8b02bf185b4b0dfbc48c812c5fa
