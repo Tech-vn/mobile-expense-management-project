@@ -1,20 +1,25 @@
 package com.example.chitieu.data.repository
 
-import com.example.chitieu.data.local.DatabaseSeeder
+import com.example.chitieu.data.local.dao.BudgetDao
+import com.example.chitieu.data.local.dao.CategoryDao
 import com.example.chitieu.data.local.entity.CategoryEntity
 import com.example.chitieu.data.local.entity.TransactionType
+import com.example.chitieu.di.AppModule
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.UUID
 
-class CategoryRepository private constructor() {
-    private val _categories = MutableStateFlow(DatabaseSeeder.defaultCategories)
-    val categories: Flow<List<CategoryEntity>> = _categories.asStateFlow()
+class CategoryRepository(
+    private val categoryDao: CategoryDao,
+    private val budgetDao: BudgetDao,
+    private val scope: CoroutineScope
+) {
+    val categories: Flow<List<CategoryEntity>> = categoryDao.observeAll()
 
     fun getCategoriesByType(type: TransactionType): Flow<List<CategoryEntity>> {
-        return _categories.map { list -> list.filter { it.type == type } }
+        return categories.map { list -> list.filter { it.type == type } }
     }
 
     fun addCategory(name: String, type: TransactionType, iconName: String, colorHex: String) {
@@ -26,33 +31,21 @@ class CategoryRepository private constructor() {
             colorHex = colorHex,
             isDefault = false
         )
-        _categories.value = _categories.value + newCat
+        scope.launch { categoryDao.insert(newCat) }
     }
 
     fun updateCategory(updated: CategoryEntity) {
-        _categories.value = _categories.value.map {
-            if (it.id == updated.id) updated else it
-        }
+        scope.launch { categoryDao.update(updated) }
     }
 
     fun deleteCategory(id: String) {
-        _categories.value = _categories.value.filter { it.id != id }
-    }
-
-    fun resetToDefaultData() {
-        _categories.value = DatabaseSeeder.defaultCategories
+        scope.launch {
+            categoryDao.deleteById(id)
+            budgetDao.deleteByCategoryId(id) // ngân sách của danh mục này không còn ý nghĩa
+        }
     }
 
     companion object {
-        @Volatile
-        private var INSTANCE: CategoryRepository? = null
-
-        fun getInstance(): CategoryRepository {
-            return INSTANCE ?: synchronized(this) {
-                val instance = CategoryRepository()
-                INSTANCE = instance
-                instance
-            }
-        }
+        fun getInstance(): CategoryRepository = AppModule.categoryRepository
     }
 }

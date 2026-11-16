@@ -1,38 +1,13 @@
 package com.example.chitieu.ui.screens.auth
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,13 +16,17 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.chitieu.ui.theme.ExpenseColor
 import com.example.chitieu.ui.theme.PrimaryColor
 import com.example.chitieu.ui.theme.TextSecondary
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit = {}
+    errorMessage: String? = null,
+    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
+    onNavigateToRegister: () -> Unit = {}
 ) {
+    // Điền sẵn tài khoản demo (có trong dữ liệu cứng SeedData)
     var email by remember { mutableStateOf("demo@chitieu.com") }
     var password by remember { mutableStateOf("123456") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -177,11 +156,18 @@ fun LoginScreen(
                 }
             }
 
+            // Lỗi đăng nhập từ database
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(errorMessage, color = ExpenseColor, fontSize = 13.sp)
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Nút Đăng nhập
             Button(
-                onClick = onLoginSuccess,
+                onClick = { onLogin(email, password) },
+                enabled = email.isNotBlank() && password.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
@@ -200,7 +186,7 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Chưa có tài khoản? ", color = TextSecondary)
-                TextButton(onClick = onLoginSuccess, contentPadding = PaddingValues(0.dp)) {
+                TextButton(onClick = onNavigateToRegister, contentPadding = PaddingValues(0.dp)) {
                     Text("Đăng ký tài khoản", color = PrimaryColor, fontWeight = FontWeight.Bold)
                 }
             }

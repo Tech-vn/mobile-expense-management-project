@@ -1,21 +1,25 @@
 package com.example.chitieu.data.repository
 
-import com.example.chitieu.data.local.DatabaseSeeder
+import com.example.chitieu.data.local.dao.TransactionDao
 import com.example.chitieu.data.local.entity.CategoryTotal
 import com.example.chitieu.data.local.entity.HomeSummary
 import com.example.chitieu.data.local.entity.TransactionEntity
 import com.example.chitieu.data.local.entity.TransactionType
+import com.example.chitieu.di.AppModule
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.UUID
 
-class TransactionRepository private constructor() {
-    private val _transactions = MutableStateFlow(DatabaseSeeder.getSampleTransactions())
-    val transactions: Flow<List<TransactionEntity>> = _transactions.asStateFlow()
+class TransactionRepository(
+    private val dao: TransactionDao,
+    private val scope: CoroutineScope
+) {
+    val transactions: Flow<List<TransactionEntity>> = dao.observeAll()
 
-    fun getTransactionList(): List<TransactionEntity> = _transactions.value
+    suspend fun getTransactionList(): List<TransactionEntity> = dao.getAll()
 
     fun addTransaction(
         title: String,
@@ -36,78 +40,53 @@ class TransactionRepository private constructor() {
             dateMillis = dateMillis,
             note = note
         )
-        _transactions.value = listOf(newTx) + _transactions.value
+        scope.launch { dao.insert(newTx) }
     }
 
     fun updateTransaction(updated: TransactionEntity) {
-        _transactions.value = _transactions.value.map {
-            if (it.id == updated.id) updated else it
-        }
+        scope.launch { dao.update(updated) }
     }
 
     fun deleteTransaction(id: String) {
-        _transactions.value = _transactions.value.filter { it.id != id }
-    }
-
-    fun resetToDefaultData() {
-        _transactions.value = DatabaseSeeder.getSampleTransactions()
+        scope.launch { dao.deleteById(id) }
     }
 
     fun getHomeSummary(): Flow<HomeSummary> {
-        return _transactions.map { list ->
-            val totalIncome = list.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-            val totalExpense = list.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-            val totalBalance = totalIncome - totalExpense
-            val recent = list.take(5)
+        return combine(
+            dao.observeTotal(TransactionType.INCOME),
+            dao.observeTotal(TransactionType.EXPENSE),
+            dao.observeRecent(5)
+        ) { income, expense, recent ->
             HomeSummary(
-                totalBalance = totalBalance,
-                totalIncome = totalIncome,
-                totalExpense = totalExpense,
+                totalBalance = income - expense,
+                totalIncome = income,
+                totalExpense = expense,
                 recentTransactions = recent
             )
         }
     }
 
     fun getCategoryTotals(type: TransactionType): Flow<List<CategoryTotal>> {
-        return _transactions.map { list ->
-            val filtered = list.filter { it.type == type }
-            val totalSum = filtered.sumOf { it.amount }
-            if (totalSum == 0.0) return@map emptyList()
-
-            val categoryMap = DatabaseSeeder.defaultCategories.associateBy { it.id }
-
-            filtered.groupBy { it.categoryId }
-                .map { (catId, txList) ->
-                    val catSum = txList.sumOf { it.amount }
-                    val catObj = categoryMap[catId]
-                    val catName = catObj?.name ?: txList.firstOrNull()?.categoryName ?: "Khác"
-                    val iconName = catObj?.iconName ?: "AttachMoney"
-                    val colorHex = catObj?.colorHex ?: "#9E9E9E"
-                    val percentage = (catSum / totalSum * 100).toFloat()
-
+        return dao.observeCategoryTotals(type).map { rows ->
+            val totalSum = rows.sumOf { it.totalAmount }
+            if (totalSum == 0.0) {
+                emptyList()
+            } else {
+                rows.map { row ->
                     CategoryTotal(
-                        categoryId = catId,
-                        categoryName = catName,
-                        iconName = iconName,
-                        colorHex = colorHex,
-                        totalAmount = catSum,
-                        percentage = percentage
+                        categoryId = row.categoryId,
+                        categoryName = row.categoryName,
+                        iconName = row.iconName,
+                        colorHex = row.colorHex,
+                        totalAmount = row.totalAmount,
+                        percentage = (row.totalAmount / totalSum * 100).toFloat()
                     )
                 }
-                .sortedByDescending { it.totalAmount }
+            }
         }
     }
 
     companion object {
-        @Volatile
-        private var INSTANCE: TransactionRepository? = null
-
-        fun getInstance(): TransactionRepository {
-            return INSTANCE ?: synchronized(this) {
-                val instance = TransactionRepository()
-                INSTANCE = instance
-                instance
-            }
-        }
+        fun getInstance(): TransactionRepository = AppModule.transactionRepository
     }
 }

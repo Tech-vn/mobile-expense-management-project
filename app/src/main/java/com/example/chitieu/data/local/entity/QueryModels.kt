@@ -1,5 +1,14 @@
 package com.example.chitieu.data.local.entity
 
+// Kết quả Room trả về từ câu query JOIN + GROUP BY (chưa có phần trăm)
+data class CategoryTotalRow(
+    val categoryId: String,
+    val categoryName: String,
+    val iconName: String,
+    val colorHex: String,
+    val totalAmount: Double
+)
+
 data class CategoryTotal(
     val categoryId: String,
     val categoryName: String,

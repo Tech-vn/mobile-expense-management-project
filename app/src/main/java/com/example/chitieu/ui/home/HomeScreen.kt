@@ -67,6 +67,7 @@ fun HomeScreen(
     val summary by viewModel.summary.collectAsState()
     val budgetStatuses by viewModel.budgetStatuses.collectAsState()
     val overallBudget = budgetStatuses.find { it.budget.categoryId == null }
+    val categories by viewModel.categories.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -337,8 +338,10 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             CategoryIcon(
-                                iconName = tx.categoryId, // Fallback icon lookup in CategoryIcon
-                                colorHex = if (tx.type == TransactionType.EXPENSE) "#E53935" else "#107C66"
+                                val category = categories.find { it.id == tx.categoryId }
+                            CategoryIcon(
+                                iconName = category?.iconName ?: "",
+                                colorHex = category?.colorHex ?: "#107C66"
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {

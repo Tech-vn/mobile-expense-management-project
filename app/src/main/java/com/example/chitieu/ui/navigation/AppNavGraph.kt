@@ -47,6 +47,8 @@ import com.example.chitieu.ui.home.HomeViewModel
 import com.example.chitieu.ui.report.ReportScreen
 import com.example.chitieu.ui.report.ReportViewModel
 import com.example.chitieu.ui.screens.auth.LoginScreen
+import com.example.chitieu.ui.screens.auth.AuthViewModel
+import com.example.chitieu.ui.screens.auth.RegisterScreen
 import com.example.chitieu.ui.settings.SettingsScreen
 import com.example.chitieu.ui.settings.SettingsViewModel
 import com.example.chitieu.ui.theme.ChitieuTheme
@@ -66,17 +68,41 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
 @Composable
 fun AppNavGraph() {
-    var isLoggedIn by remember { mutableStateOf(false) }
+    val authViewModel: AuthViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val isDarkMode by settingsViewModel.darkModeEnabled.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val authError by authViewModel.errorMessage.collectAsState()
+    var showRegister by remember { mutableStateOf(false) }
 
     ChitieuTheme(darkTheme = isDarkMode) {
-        if (!isLoggedIn) {
-            LoginScreen(onLoginSuccess = { isLoggedIn = true })
+        if (currentUser == null) {
+            if (showRegister) {
+                RegisterScreen(
+                    errorMessage = authError,
+                    onRegister = { name, email, password -> authViewModel.register(name, email, password) },
+                    onNavigateToLogin = {
+                        authViewModel.clearError()
+                        showRegister = false
+                    }
+                )
+            } else {
+                LoginScreen(
+                    errorMessage = authError,
+                    onLogin = { email, password -> authViewModel.login(email, password) },
+                    onNavigateToRegister = {
+                        authViewModel.clearError()
+                        showRegister = true
+                    }
+                )
+            }
         } else {
             MainAppShell(
                 settingsViewModel = settingsViewModel,
-                onLogout = { isLoggedIn = false }
+                onLogout = {
+                    authViewModel.logout()
+                    showRegister = false
+                }
             )
         }
     }

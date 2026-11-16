@@ -1,7 +1,11 @@
 package com.example.chitieu.data.local.entity
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "categories")
 data class CategoryEntity(
-    val id: String,
+    @PrimaryKey val id: String,
     val name: String,
     val type: TransactionType,
     val iconName: String,

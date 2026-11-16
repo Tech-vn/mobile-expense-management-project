@@ -1,8 +1,16 @@
 package com.example.chitieu.data.local.entity
 
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+@Entity(
+    tableName = "budgets",
+    indices = [Index("categoryId"), Index("monthYear")]
+)
 data class BudgetEntity(
-    val id: String,
-    val categoryId: String?, // null for overall total budget limit
+    @PrimaryKey val id: String,
+    val categoryId: String?, // null = ngân sách tổng của tháng
     val limitAmount: Double,
-    val monthYear: String // e.g. "03/2025"
+    val monthYear: String // ví dụ "11/2026"
 )
